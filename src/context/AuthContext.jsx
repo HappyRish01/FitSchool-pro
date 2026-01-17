@@ -23,15 +23,18 @@ const USERS = {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [hasSeenInstructions, setHasSeenInstructions] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     // Check for stored auth on mount
     const storedUser = localStorage.getItem('fitschool_user')
+    const instructionsSeen = localStorage.getItem('fitschool_instructions_seen')
     if (storedUser) {
       const parsedUser = JSON.parse(storedUser)
       setUser(parsedUser)
       setIsAuthenticated(true)
+      setHasSeenInstructions(instructionsSeen === 'true')
     }
     setLoading(false)
   }, [])
@@ -47,7 +50,9 @@ export function AuthProvider({ children }) {
       delete userWithoutPassword.password
       setUser(userWithoutPassword)
       setIsAuthenticated(true)
+      setHasSeenInstructions(false)
       localStorage.setItem('fitschool_user', JSON.stringify(userWithoutPassword))
+      localStorage.removeItem('fitschool_instructions_seen')
       return { success: true, user: userWithoutPassword }
     }
 
@@ -62,7 +67,9 @@ export function AuthProvider({ children }) {
       delete userWithoutPassword.password
       setUser(userWithoutPassword)
       setIsAuthenticated(true)
+      setHasSeenInstructions(false)
       localStorage.setItem('fitschool_user', JSON.stringify(userWithoutPassword))
+      localStorage.removeItem('fitschool_instructions_seen')
       return { success: true, user: userWithoutPassword }
     }
 
@@ -72,7 +79,14 @@ export function AuthProvider({ children }) {
   const logout = () => {
     setUser(null)
     setIsAuthenticated(false)
+    setHasSeenInstructions(false)
     localStorage.removeItem('fitschool_user')
+    localStorage.removeItem('fitschool_instructions_seen')
+  }
+
+  const markInstructionsSeen = () => {
+    setHasSeenInstructions(true)
+    localStorage.setItem('fitschool_instructions_seen', 'true')
   }
 
   if (loading) {
@@ -84,7 +98,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, hasSeenInstructions, login, logout, markInstructionsSeen }}>
       {children}
     </AuthContext.Provider>
   )

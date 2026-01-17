@@ -12,9 +12,10 @@ import TalentScout from './pages/TalentScout'
 import SportsDayManager from './pages/SportsDayManager'
 import TeacherManagement from './pages/TeacherManagement'
 import ExportData from './pages/ExportData'
+import Instructions from './pages/Instructions'
 
-function ProtectedRoute({ children, allowedRoles }) {
-  const { user, isAuthenticated } = useAuth()
+function ProtectedRoute({ children, allowedRoles, skipInstructionsCheck = false }) {
+  const { user, isAuthenticated, hasSeenInstructions } = useAuth()
   
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />
@@ -23,19 +24,41 @@ function ProtectedRoute({ children, allowedRoles }) {
   if (allowedRoles && !allowedRoles.includes(user?.role)) {
     return <Navigate to={user?.role === 'admin' ? '/admin' : '/teacher'} replace />
   }
+
+  // Redirect to instructions if not seen yet (only for teachers, skip for admin)
+  if (!skipInstructionsCheck && !hasSeenInstructions && user?.role === 'teacher') {
+    return <Navigate to="/instructions" replace />
+  }
   
   return children
 }
 
 function App() {
-  const { isAuthenticated, user } = useAuth()
+  const { isAuthenticated, user, hasSeenInstructions } = useAuth()
+
+  // Determine where to redirect after login
+  const getPostLoginRedirect = () => {
+    if (user?.role === 'admin') return '/admin'
+    if (!hasSeenInstructions) return '/instructions'
+    return '/teacher'
+  }
 
   return (
     <div className="min-h-screen bg-slate-100">
       <Routes>
         <Route 
           path="/login" 
-          element={isAuthenticated ? <Navigate to={user?.role === 'admin' ? '/admin' : '/teacher'} replace /> : <Login />} 
+          element={isAuthenticated ? <Navigate to={getPostLoginRedirect()} replace /> : <Login />} 
+        />
+
+        {/* Instructions Route */}
+        <Route 
+          path="/instructions" 
+          element={
+            <ProtectedRoute allowedRoles={['teacher']} skipInstructionsCheck={true}>
+              <Instructions />
+            </ProtectedRoute>
+          } 
         />
         
         {/* Admin Routes */}
